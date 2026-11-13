@@ -30,3 +30,7 @@ body {
   stroke-width: 1;
   pointer-events: auto;
 }
+
+#map svg circle {
+  pointer-events: auto;
+}
