@@ -65,3 +65,23 @@ header em {
   );
   fill: var(--color);
 }
+
+.legend {
+  display: flex;
+  gap: 1em;
+  margin-top: 1em;
+}
+
+.legend div {
+  padding: 0.5em 1em;
+  background-color: var(--color);
+  color: white;
+  border-radius: 0.5em;
+  --color-departures: steelblue;
+  --color-arrivals: darkorange;
+  --color: color-mix(
+    in oklch,
+    var(--color-departures) calc(100% * var(--departure-ratio)),
+    var(--color-arrivals)
+  );
+}
