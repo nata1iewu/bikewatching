@@ -34,3 +34,23 @@ body {
 #map svg circle {
   pointer-events: auto;
 }
+
+header {
+  display: flex;
+  align-items: baseline;
+  gap: 1em;
+}
+
+header label {
+  margin-left: auto;
+}
+
+header time,
+header em {
+  display: block;
+}
+
+header em {
+  color: gray;
+  font-style: italic;
+}
