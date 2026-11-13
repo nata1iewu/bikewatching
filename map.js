@@ -1,3 +1,4 @@
+
 import mapboxgl from 'https://cdn.jsdelivr.net/npm/mapbox-gl@2.15.0/+esm';
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 
@@ -59,7 +60,7 @@ map.on('load', async () => {
 
     let stations = jsonData.data.stations;
 
-    let trips = await d3.csv(
+    const trips = await d3.csv(
       'https://dsc106.com/labs/lab07/data/bluebikes-traffic-2024-03.csv',
       (trip) => {
         trip.started_at = new Date(trip.started_at);
@@ -72,23 +73,31 @@ map.on('load', async () => {
 
     console.log('Updated Stations:', stations);
 
-    const circles = svg
-      .selectAll('circle')
-      .data(stations, (d) => d.short_name)
-      .enter()
-      .append('circle')
-      .attr('r', 5)
-      .attr('fill', 'steelblue')
-      .attr('stroke', 'white')
-      .attr('stroke-width', 1)
-      .attr('opacity', 0.8);
-
     const radiusScale = d3
       .scaleSqrt()
       .domain([0, d3.max(stations, (d) => d.totalTraffic)])
       .range([0, 25]);
 
-    circles.attr('r', (d) => radiusScale(d.totalTraffic));
+    const stationFlow = d3
+      .scaleQuantize()
+      .domain([0, 1])
+      .range([0, 0.5, 1]);
+
+    const circles = svg
+      .selectAll('circle')
+      .data(stations, (d) => d.short_name)
+      .enter()
+      .append('circle')
+      .attr('r', (d) => radiusScale(d.totalTraffic))
+      .attr('fill', 'steelblue')
+      .attr('stroke', 'white')
+      .attr('stroke-width', 1)
+      .attr('opacity', 0.8)
+      .style('--departure-ratio', (d) =>
+        d.totalTraffic === 0
+          ? 0.5
+          : stationFlow(d.departures / d.totalTraffic),
+      );
 
     circles.each(function (d) {
       d3.select(this)
@@ -103,6 +112,8 @@ map.on('load', async () => {
         .attr('cx', (d) => getCoords(d).cx)
         .attr('cy', (d) => getCoords(d).cy);
     }
+
+    let timeFilter = Number(timeSlider.value);
 
     function updateTimeDisplay() {
       timeFilter = Number(timeSlider.value);
@@ -126,17 +137,27 @@ map.on('load', async () => {
         filteredTrips,
       );
 
-      timeFilter === -1
-        ? radiusScale.range([0, 25])
-        : radiusScale.range([3, 50]);
+      if (timeFilter === -1) {
+        radiusScale.range([0, 25]);
+      } else {
+        radiusScale.range([3, 50]);
+      }
 
       circles
         .data(filteredStations, (d) => d.short_name)
         .join('circle')
-        .attr('r', (d) => radiusScale(d.totalTraffic));
+        .attr('r', (d) => radiusScale(d.totalTraffic))
+        .style('--departure-ratio', (d) =>
+          d.totalTraffic === 0
+            ? 0.5
+            : stationFlow(d.departures / d.totalTraffic),
+        )
+        .select('title')
+        .text(
+          (d) =>
+            `${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`,
+        );
     }
-
-    let timeFilter = Number(timeSlider.value);
 
     timeSlider.addEventListener('input', updateTimeDisplay);
 
@@ -174,7 +195,7 @@ function computeStationTraffic(stations, trips) {
   );
 
   return stations.map((station) => {
-    let id = station.short_name;
+    const id = station.short_name;
 
     station.arrivals = arrivals.get(id) ?? 0;
     station.departures = departures.get(id) ?? 0;
